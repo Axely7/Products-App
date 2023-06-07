@@ -1,4 +1,5 @@
-import {createContext, useReducer} from 'react';
+import {createContext, useEffect, useReducer} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import cafeApi from '../api/cafeApi';
 import {Usuario, LoginResponse, LoginData} from '../interfaces/appInterfaces';
 import {authReducer, AuthState} from './authReducer';
@@ -26,20 +27,54 @@ export const AuthContext = createContext({} as AuthContextProps);
 export const AuthProvider = ({children}: any) => {
   const [state, dispatch] = useReducer(authReducer, authInitialState);
 
+  useEffect(() => {
+    checkToken();
+  }, []);
+
+  const checkToken = async () => {
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return dispatch({type: 'notAuthenticated'});
+
+    const resp = await cafeApi.get('/auth');
+
+    if (resp.status !== 200) {
+      return dispatch({type: 'notAuthenticated'});
+    }
+    await AsyncStorage.setItem('token', resp.data.token);
+
+    dispatch({
+      type: 'signUp',
+      payload: {token: resp.data.token, user: resp.data.usuario},
+    });
+  };
+
   const signUp = () => {};
   const signIn = async ({correo, password}: LoginData) => {
     try {
-      const resp = await cafeApi.post<LoginResponse>('/auth/login', {
+      const {data} = await cafeApi.post<LoginResponse>('/auth/login', {
         correo,
         password,
       });
-      console.log(resp.data);
-    } catch (error) {
-      console.log(error.response.data);
+      dispatch({
+        type: 'signUp',
+        payload: {token: data.token, user: data.usuario},
+      });
+      await AsyncStorage.setItem('token', data.token);
+    } catch (error: any) {
+      console.log(error.response.data.msg);
+      dispatch({
+        type: 'addError',
+        payload: error.message.data?.msg || 'Información incorrecta',
+      });
     }
   };
-  const logOut = () => {};
-  const removeError = () => {};
+  const logOut = async () => {
+    await AsyncStorage.removeItem('token');
+    dispatch({type: 'logout'});
+  };
+  const removeError = () => {
+    dispatch({type: 'removeError'});
+  };
 
   return (
     <AuthContext.Provider
