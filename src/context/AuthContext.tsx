@@ -1,7 +1,12 @@
 import {createContext, useEffect, useReducer} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import cafeApi from '../api/cafeApi';
-import {Usuario, LoginResponse, LoginData} from '../interfaces/appInterfaces';
+import {
+  Usuario,
+  LoginResponse,
+  LoginData,
+  RegisterData,
+} from '../interfaces/appInterfaces';
 import {authReducer, AuthState} from './authReducer';
 
 type AuthContextProps = {
@@ -9,7 +14,7 @@ type AuthContextProps = {
   token: string | null;
   user: Usuario | null;
   status: 'checking' | 'authenticated' | 'not-authenticated';
-  signUp: () => void;
+  signUp: ({nombre, correo, password}: RegisterData) => void;
   signIn: ({correo, password}: LoginData) => void;
   logOut: () => void;
   removeError: () => void;
@@ -48,7 +53,26 @@ export const AuthProvider = ({children}: any) => {
     });
   };
 
-  const signUp = () => {};
+  const signUp = async ({nombre, correo, password}: RegisterData) => {
+    try {
+      const {data} = await cafeApi.post<LoginResponse>('/usuarios', {
+        correo,
+        nombre,
+        password,
+      });
+      dispatch({
+        type: 'signUp',
+        payload: {token: data.token, user: data.usuario},
+      });
+      await AsyncStorage.setItem('token', data.token);
+    } catch (error: any) {
+      dispatch({
+        type: 'addError',
+        payload: error.response.data.errors[0].msg || 'Revise la Información',
+      });
+    }
+  };
+
   const signIn = async ({correo, password}: LoginData) => {
     try {
       const {data} = await cafeApi.post<LoginResponse>('/auth/login', {
@@ -61,10 +85,10 @@ export const AuthProvider = ({children}: any) => {
       });
       await AsyncStorage.setItem('token', data.token);
     } catch (error: any) {
-      console.log(error.response.data.msg);
+      console.log(error.response.data);
       dispatch({
         type: 'addError',
-        payload: error.message.data?.msg || 'Información incorrecta',
+        payload: error.response.data?.errors[0].msg || 'Información incorrecta',
       });
     }
   };

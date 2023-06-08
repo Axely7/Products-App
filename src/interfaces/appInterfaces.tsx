@@ -19,3 +19,9 @@ export interface Usuario {
   uid: string;
   img?: string;
 }
+
+export interface RegisterData {
+  correo: string;
+  password: string;
+  nombre: string;
+}
