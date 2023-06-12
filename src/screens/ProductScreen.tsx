@@ -1,5 +1,5 @@
 import {StackScreenProps} from '@react-navigation/stack';
-import React, {useContext, useEffect} from 'react';
+import React, {useContext, useEffect, useState} from 'react';
 import {
   Button,
   Image,
@@ -14,14 +14,16 @@ import {Picker} from '@react-native-picker/picker';
 import {useCategories} from '../hooks/useCategories';
 import {useForm} from '../hooks/useForm';
 import {ProductsContext} from '../context/ProductsContext';
+import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 
 interface Props
   extends StackScreenProps<ProductsStackParams, 'ProductScreen'> {}
 
 export const ProductScreen = ({route, navigation}: Props) => {
   const {name = '', id = ''} = route.params;
+  const [tempUri, setTempUri] = useState<string>();
 
-  const {loadProductById, addProduct, updateProduct} =
+  const {loadProductById, addProduct, updateProduct, uploadImage} =
     useContext(ProductsContext);
 
   const {
@@ -71,6 +73,42 @@ export const ProductScreen = ({route, navigation}: Props) => {
     }
   };
 
+  const takePhoto = () => {
+    launchCamera(
+      {
+        mediaType: 'photo',
+        quality: 0.5,
+      },
+      resp => {
+        console.log(resp);
+        if (resp.didCancel) return;
+
+        if (!resp.assets) return;
+
+        setTempUri(resp.assets?.[0].uri);
+        uploadImage(resp, _id);
+      },
+    );
+  };
+
+  const takePhotoFromGallery = () => {
+    launchImageLibrary(
+      {
+        mediaType: 'photo',
+        quality: 0.5,
+      },
+      resp => {
+        console.log(resp);
+        if (resp.didCancel) return;
+
+        if (!resp.assets) return;
+
+        setTempUri(resp.assets?.[0].uri);
+        uploadImage(resp, _id);
+      },
+    );
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView>
@@ -99,23 +137,25 @@ export const ProductScreen = ({route, navigation}: Props) => {
               justifyContent: 'center',
               marginTop: 10,
             }}>
-            <Button
-              title="Cámara"
-              onPress={() => console.log('hey')}
-              color="#5856D6"
-            />
+            <Button title="Cámara" onPress={takePhoto} color="#5856D6" />
             <View style={{width: 10}} />
             <Button
               title="Galería"
-              onPress={() => console.log('hey')}
+              onPress={takePhotoFromGallery}
               color="#5856D6"
             />
           </View>
         )}
 
-        {img.length > 0 && (
+        {img.length > 0 && !tempUri && (
           <Image
             source={{uri: img}}
+            style={{width: '100%', height: 300, marginTop: 20}}
+          />
+        )}
+        {tempUri && (
+          <Image
+            source={{uri: tempUri}}
             style={{width: '100%', height: 300, marginTop: 20}}
           />
         )}
