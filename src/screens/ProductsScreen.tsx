@@ -1,5 +1,6 @@
 import React, {useContext, useEffect, useState} from 'react';
 import {
+  Button,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -10,12 +11,14 @@ import {
 import {ProductsContext} from '../context/ProductsContext';
 import {StackScreenProps} from '@react-navigation/stack';
 import {ProductsStackParams} from '../navigator/ProductsNavigator';
+import {AuthContext} from '../context/AuthContext';
 
 interface Props
   extends StackScreenProps<ProductsStackParams, 'ProductsScreen'> {}
 
 export const ProductsScreen = ({navigation}: Props) => {
   const {products, loadProducts} = useContext(ProductsContext);
+  const {logOut} = useContext(AuthContext);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
@@ -62,6 +65,7 @@ export const ProductsScreen = ({navigation}: Props) => {
           />
         }
       />
+      <Button title="Logout" color={'#5958D6'} onPress={logOut} />
     </View>
   );
 };
